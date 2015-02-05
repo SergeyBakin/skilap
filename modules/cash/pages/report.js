@@ -113,7 +113,12 @@ module.exports = function account(webapp) {
 							var acs = accKeys[split.accountId];
 							if (acs) {
 								var val = split.value*irate;
-								if (params.accType!=acs.type){
+								if (params.accType == "INCOME_EXPENSE"){
+									if ((acs.type != "EXPENSE") && (acs.type != "INCOME")){
+										acs.summ  = 0;
+										val = 0;				
+								}	}
+								else if (params.accType!=acs.type){
 									acs.summ  = 0;
 									val = 0;
 								}
@@ -160,7 +165,13 @@ module.exports = function account(webapp) {
 									delete ids[item.parentId];
 									if (item.level<=params.accLevel)
 										delete ids[id];
-									if (item.type!=params.accType)
+									if (params.accType == "INCOME_EXPENSE")
+										if ((item.type != "EXPENSE") && (item.type != "INCOME")){
+											if (item.level<=params.accLevel)
+											delete ids[id];
+								
+										}	
+									else if (item.type!=params.accType)
 										delete ids[id];
 								})
 								// reduce
@@ -168,7 +179,7 @@ module.exports = function account(webapp) {
 									var child = accKeys[id];
 									var parent = accKeys[child.parentId];								
 									parent.summ+=child.summ;
-									parent.expand = 1;
+									//parent.expand = 1;
 									if (child.periods) {
 										for (var i = 0 ; i<child.periods.length; i++) {
 											parent.periods[i].summ+=child.periods[i].summ;
@@ -186,7 +197,25 @@ module.exports = function account(webapp) {
 								)});										
 							}													
 							accKeys = _(accKeys).reduce(function (memo, acc) {								
-								if (acc.type == params.accType || acc.expand)
+								if (params.accType == "INCOME_EXPENSE"){
+									if ((acc.type == "INCOME") || (acc.type == "EXPENSE") || acc.expand){
+											memo[acc._id] = acc;
+											/*if (acc.type == "INCOME"){                    // разкоментированние этого кода приводит
+											memo[acc._id].summ*=-1;                         // к изменению знаков данных у "Доходы" и "Расходы" 
+											_.forEach(memo[acc._id].periods, function(p){   // на противоположные, в пункте "Доходы/Расходы",
+												p.summ*=-1;                                 // т.о. "Доходы" на графике будут представлены               
+											})	                                            // на положительной оси, а "Расходы" - на отрицательной.
+											//memo[acc._id].periods.summ*=-1;
+											}	
+											if (acc.type == "EXPENSE"){
+											memo[acc._id].summ*=-1;	
+											_.forEach(memo[acc._id].periods, function(p){
+												p.summ*=-1;
+											})	
+											//memo[acc._id].periods.summ*=-1;
+											}*/
+								}	    }		
+								else if (acc.type == params.accType || acc.expand)
 									memo[acc._id] = acc;					
 								return memo;
 							}, {});		
@@ -214,9 +243,16 @@ module.exports = function account(webapp) {
 			function(cb1){				
 				var total = 0;
 				// find important accounts (with biggest summ over entire period)
+				if (params.accType == "INCOME_EXPENSE"){
+				var iacs = _(accKeys).chain().map(function (acs) { return {_id:acs._id, summ:acs.summ}})
+					.sortBy(function (acs) {return acs.summ})
+					.reduce(function (memo, acs) { memo[acs._id]=1; return memo; }, {}).value();
+				}
+				else {
 				var iacs = _(accKeys).chain().map(function (acs) { return {_id:acs._id, summ:acs.summ}})
 					.sortBy(function (acs) {return acs.summ}).last(params.maxAcc)
 					.reduce(function (memo, acs) { memo[acs._id]=1; return memo; }, {}).value();
+				}
 				// colapse non important
 				var final = _(accKeys).reduce( function (memo, accKey) {
 					total += accKey.summ;

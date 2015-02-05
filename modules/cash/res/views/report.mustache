@@ -28,7 +28,7 @@ require(["jquery","jquery-block","highcharts"], function ($) {
 					},
 					yAxis: {
 						title: {
-							text: '{{reportSettings.accTypeName}}'
+							text: '{{reportSettings.accType}}'
 						},
 						stackLabels: {
 							enabled: true,
@@ -39,7 +39,18 @@ require(["jquery","jquery-block","highcharts"], function ($) {
 							formatter : function () {
 								return this.total.toFixed(2);
 							}
-						}
+						},
+						gridLineColor: '#8AB8E6',
+						alternateGridColor: {
+							linearGradient: {
+								x1: 0, y1: 1,
+								x2: 1, y2: 1
+							},
+							stops: [ [0, '#FAFCFF' ],
+							[0.5, '#F5FAFF'] ,
+							[0.8, '#E0F0FF'] ,
+							[1, '#D6EBFF'] ]
+						},
 					},
 					credits: {
 						enabled: true
